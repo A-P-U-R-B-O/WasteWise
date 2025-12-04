@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from fastapi. exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 import time
 import logging
@@ -19,18 +19,19 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
-from app. core.database import initialize_firebase, close_firebase
+from app.core.database import initialize_firebase, close_firebase
 from app.services.gemini_service import get_gemini_service
 
 # Import routes (we'll create these next)
-# from app.api.routes import waste, user, auth, leaderboard
+from app.api.routes import waste # <-- UNCOMMENTED/ADDED THIS LINE
+# from app.api.routes import user, auth, leaderboard
 
 # Configure logging
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging. StreamHandler(),
+        logging.StreamHandler(),
         logging.FileHandler(settings.LOG_FILE) if settings.LOG_FILE else logging.NullHandler()
     ]
 )
@@ -62,7 +63,7 @@ async def lifespan(app: FastAPI):
     # Validate Gemini API
     try:
         gemini_service = get_gemini_service()
-        if gemini_service. validate_api_key():
+        if gemini_service.validate_api_key():
             logger.info("✅ Gemini AI connected")
         else:
             logger.warning("⚠️ Gemini API key validation failed")
@@ -108,7 +109,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings. BACKEND_CORS_ORIGINS,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,7 +123,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 if settings.is_production:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*. wastewise.com", "wastewise.com"]  # Update with your domain
+        allowed_hosts=["*.wastewise.com", "wastewise.com"]  # Update with your domain
     )
 
 
@@ -130,7 +131,7 @@ if settings.is_production:
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all requests with timing"""
-    start_time = time. time()
+    start_time = time.time()
     
     # Process request
     response = await call_next(request)
@@ -139,7 +140,7 @@ async def log_requests(request: Request, call_next):
     duration = time.time() - start_time
     
     # Log request
-    logger. info(
+    logger.info(
         f"{request.method} {request.url.path} | "
         f"Status: {response.status_code} | "
         f"Duration: {duration:.3f}s | "
@@ -161,7 +162,7 @@ async def add_security_headers(request: Request, call_next):
     
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response. headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     
     return response
@@ -169,10 +170,10 @@ async def add_security_headers(request: Request, call_next):
 
 # ==================== EXCEPTION HANDLERS ====================
 
-@app. exception_handler(RequestValidationError)
+@app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors"""
-    logger. warning(f"Validation error on {request.url.path}: {exc.errors()}")
+    logger.warning(f"Validation error on {request.url.path}: {exc.errors()}")
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -296,7 +297,7 @@ async def api_info():
         },
         "ai_model": {
             "provider": "Google Gemini",
-            "model": settings. GEMINI_MODEL,
+            "model": settings.GEMINI_MODEL,
             "capabilities": [
                 "Image recognition",
                 "Waste classification",
@@ -366,7 +367,7 @@ if not settings.is_production:
                 "success": True,
                 "gemini_status": "connected",
                 "model": settings.GEMINI_MODEL,
-                "test_response": test_response. text
+                "test_response": test_response.text
             }
         except Exception as e:
             return JSONResponse(
@@ -390,7 +391,7 @@ if not settings.is_production:
                 "app_name": settings.APP_NAME,
                 "version": settings.APP_VERSION,
                 "environment": settings.ENVIRONMENT,
-                "debug": settings. DEBUG,
+                "debug": settings.DEBUG,
                 "gemini_model": settings.GEMINI_MODEL,
                 "upload_dir": settings.UPLOAD_DIR,
                 "max_upload_size_mb": settings.MAX_UPLOAD_SIZE / (1024 * 1024),
@@ -402,22 +403,24 @@ if not settings.is_production:
 
 # ==================== API ROUTES ====================
 
-# Include API routers (we'll create these files next)
-# These are commented out for now - we'll uncomment as we create the route files
+# Include API routers
+from app.api.routes import waste # <-- Ensure this import is here
+# from app.api.routes import user, auth, leaderboard
 
-"""
-from app.api.routes import waste, user, auth, leaderboard
-
-app.include_router(
-    auth.router,
-    prefix=f"{settings.API_V1_PREFIX}/auth",
-    tags=["Authentication"]
-)
-
+# ADDED THE WASTE ROUTER INCLUSION HERE
 app.include_router(
     waste.router,
     prefix=f"{settings.API_V1_PREFIX}/waste",
     tags=["Waste Identification"]
+)
+# END OF WASTE ROUTER INCLUSION
+
+"""
+# These are commented out for now - we'll uncomment as we create the route files
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_PREFIX}/auth",
+    tags=["Authentication"]
 )
 
 app.include_router(
@@ -427,7 +430,7 @@ app.include_router(
 )
 
 app.include_router(
-    leaderboard. router,
+    leaderboard.router,
     prefix=f"{settings.API_V1_PREFIX}/leaderboard",
     tags=["Leaderboard & Gamification"]
 )
@@ -441,15 +444,16 @@ if __name__ == "__main__":
     
     print("=" * 60)
     print(f"🌍 WasteWise API v{settings.APP_VERSION}")
-    print(f"🔧 Environment: {settings. ENVIRONMENT}")
+    print(f"🔧 Environment: {settings.ENVIRONMENT}")
     print(f"📍 Starting server at http://localhost:8000")
     print(f"📚 API Docs at http://localhost:8000/docs")
     print("=" * 60)
     
     uvicorn.run(
         "app.main:app",
-        host="0.0.0. 0",
+        host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,
-        log_level=settings.LOG_LEVEL. lower()
+        log_level=settings.LOG_LEVEL.lower()
     )
+    
