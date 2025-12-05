@@ -126,7 +126,12 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 if settings.is_production:
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*.wastewise.com", "wastewise.com"]  # Update with your domain
+        allowed_hosts=[
+            "*.wastewise.com",
+            "wastewise.com",
+            "*.onrender.com",          # Accept ALL onrender subdomains
+            "https://wastewise-r6fh.onrender.com" 
+        ]
     )
 
 # Request logging middleware
