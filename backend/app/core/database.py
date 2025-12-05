@@ -80,7 +80,7 @@ def get_firestore_client() -> Optional[firestore.Client]:
     return _firestore_client
 
 
-def get_storage_bucket() -> Optional[storage.Bucket]:
+def get_storage_bucket() -> Optional[object]:
     """
     Get Firebase Storage bucket
     
