@@ -1,0 +1,21 @@
+.education-page {
+  padding: 2rem 0;
+}
+
+.education-page . card {
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.education-page ul {
+  list-style: none;
+  padding: 0;
+}
+
+.education-page li {
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  font-size: 1.125rem;
+}
