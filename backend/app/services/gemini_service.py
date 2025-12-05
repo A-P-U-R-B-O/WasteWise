@@ -168,7 +168,7 @@ Analyze the image now:"""
                 data["category"] = "Unknown"
             
             # Ensure confidence is float between 0 and 1
-            data["confidence"] = max(0.0, min(1.0, float(data. get("confidence", 0. 5))))
+            data["confidence"] = max(0.0, min(1.0, float(data. get("confidence", 0.5))))
             
             # Add disposal guide from config if available
             if data["category"] in WASTE_DISPOSAL_GUIDES:
@@ -231,7 +231,7 @@ Analyze the image now:"""
             ],
             "bin_color": "GREY",
             "environmental_impact": {
-                "co2_saved_kg": 0. 0,
+                "co2_saved_kg": 0.0,
                 "decomposition_time": "Unknown",
                 "recycling_potential": "Unknown"
             },
