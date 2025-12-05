@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Global Firebase instances
 _firebase_app: Optional[firebase_admin.App] = None
 _firestore_client: Optional[firestore.Client] = None
-_storage_bucket: Optional[storage. Bucket] = None
+_storage_bucket: Optional[storage.Bucket] = None
 
 
 def initialize_firebase() -> firebase_admin.App:
