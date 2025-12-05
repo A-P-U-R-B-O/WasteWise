@@ -35,12 +35,13 @@ class Settings(BaseSettings):
     
     # ==================== CORS SETTINGS ====================
     BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-        ],
-        env="BACKEND_CORS_ORIGINS"
+    default=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "https://wastewise-1-99l2.onrender.com",  # ← Add your frontend URL
+    ],
+    env="BACKEND_CORS_ORIGINS"
     )
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
