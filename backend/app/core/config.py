@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     # ==================== GOOGLE GEMINI AI ====================
     GEMINI_API_KEY: str = Field(..., env="GEMINI_API_KEY")
     GEMINI_MODEL: str = Field(
-        default="gemini-1.5-flash",
+        default="gemini-2.5-flash",
         env="GEMINI_MODEL"
     )
     GEMINI_TEMPERATURE: float = Field(default=0.4, env="GEMINI_TEMPERATURE")
@@ -232,7 +232,7 @@ WASTE_DISPOSAL_GUIDES = {
             "Place in blue recycling bin"
         ],
         "examples": ["Newspapers", "Cardboard boxes", "Office paper"],
-        "co2_saved_per_kg": 0. 9,
+        "co2_saved_per_kg": 0.9,
         "decomposition_time": "2-6 weeks"
     },
     "Organic/Compost": {
@@ -292,7 +292,7 @@ WASTE_DISPOSAL_GUIDES = {
             "Check if alternative disposal exists"
         ],
         "examples": ["Styrofoam", "Dirty plastics", "Mixed materials"],
-        "co2_saved_per_kg": 0. 0,
+        "co2_saved_per_kg": 0.0,
         "decomposition_time": "Varies, often hundreds of years"
     }
   }
