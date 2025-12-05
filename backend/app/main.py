@@ -130,7 +130,7 @@ if settings.is_production:
             "*.wastewise.com",
             "wastewise.com",
             "*.onrender.com",          # Accept ALL onrender subdomains
-            "https://wastewise-r6fh.onrender.com" 
+            "wastewise-r6fh.onrender.com" 
         ]
     )
 
