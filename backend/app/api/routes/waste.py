@@ -55,7 +55,7 @@ class WasteScanResponse(BaseModel):
                 "scan_id": "scan_20241204_abc123",
                 "item_name": "Plastic Water Bottle",
                 "category": "Recyclable Plastic",
-                "confidence": 0. 95,
+                "confidence": 0.95,
                 "subcategory": "PET Plastic",
                 "recyclable": True,
                 "disposal_steps": [
@@ -189,7 +189,7 @@ async def update_user_stats(user_id: str, scan_data: Dict[str, Any]):
             user_ref.update({
                 "total_scans": user_data. get("total_scans", 0) + 1,
                 "total_points": user_data.get("total_points", 0) + scan_data.get("points_earned", 0),
-                "co2_saved_kg": user_data.get("co2_saved_kg", 0. 0) + scan_data.get("environmental_impact", {}).get("co2_saved_kg", 0.0),
+                "co2_saved_kg": user_data.get("co2_saved_kg", 0.0) + scan_data.get("environmental_impact", {}).get("co2_saved_kg", 0.0),
                 "last_scan_timestamp": datetime.utcnow(). isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             })
@@ -201,7 +201,7 @@ async def update_user_stats(user_id: str, scan_data: Dict[str, Any]):
                 "user_id": user_id,
                 "total_scans": 1,
                 "total_points": scan_data.get("points_earned", 0),
-                "co2_saved_kg": scan_data.get("environmental_impact", {}).get("co2_saved_kg", 0. 0),
+                "co2_saved_kg": scan_data.get("environmental_impact", {}).get("co2_saved_kg", 0.0),
                 "level": 1,
                 "created_at": datetime.utcnow().isoformat(),
                 "last_scan_timestamp": datetime.utcnow().isoformat()
