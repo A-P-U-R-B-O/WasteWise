@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 import time
 import logging
 from pathlib import Path
+import os
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -22,11 +23,18 @@ from app.core.config import settings
 from app.core.database import initialize_firebase, close_firebase
 from app.services.gemini_service import get_gemini_service
 
-# Import routes (we'll create these next)
-from app.api.routes import waste # <-- UNCOMMENTED/ADDED THIS LINE
+# Import routes
+from app.api.routes import waste
 # from app.api.routes import user, auth, leaderboard
 
-# Configure logging
+# ==================== LOG DIRECTORY SETUP (EARLY) ====================
+# Ensure log directory exists before configuring logging!
+if settings.LOG_FILE:
+    log_dir = os.path.dirname(settings.LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+
+# ==================== CONFIGURE LOGGING ====================
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -41,7 +49,6 @@ logger = logging.getLogger(__name__)
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-
 # ==================== LIFESPAN EVENTS ====================
 
 @asynccontextmanager
@@ -51,7 +58,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("🚀 Starting WasteWise API...")
-    
+
     # Initialize Firebase
     try:
         initialize_firebase()
@@ -59,7 +66,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Firebase initialization failed: {str(e)}")
         # Continue anyway for development
-    
+
     # Validate Gemini API
     try:
         gemini_service = get_gemini_service()
@@ -69,28 +76,25 @@ async def lifespan(app: FastAPI):
             logger.warning("⚠️ Gemini API key validation failed")
     except Exception as e:
         logger.error(f"❌ Gemini initialization failed: {str(e)}")
-    
-    # Create required directories
+
+    # Create required directories (for uploaded files, etc.)
     Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-    Path(settings.LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-    
     logger.info(f"🌍 Environment: {settings.ENVIRONMENT}")
     logger.info(f"🔧 Debug mode: {settings.DEBUG}")
     logger.info("✅ Application startup complete")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("🛑 Shutting down WasteWise API...")
-    
+
     try:
         close_firebase()
         logger.info("✅ Firebase connection closed")
     except Exception as e:
         logger.error(f"❌ Firebase shutdown error: {str(e)}")
-    
-    logger.info("✅ Application shutdown complete")
 
+    logger.info("✅ Application shutdown complete")
 
 # ==================== CREATE APP ====================
 
@@ -102,7 +106,6 @@ app = FastAPI(
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
 
 # ==================== MIDDLEWARE ====================
 
@@ -126,19 +129,18 @@ if settings.is_production:
         allowed_hosts=["*.wastewise.com", "wastewise.com"]  # Update with your domain
     )
 
-
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all requests with timing"""
     start_time = time.time()
-    
+
     # Process request
     response = await call_next(request)
-    
+
     # Calculate duration
     duration = time.time() - start_time
-    
+
     # Log request
     logger.info(
         f"{request.method} {request.url.path} | "
@@ -146,27 +148,25 @@ async def log_requests(request: Request, call_next):
         f"Duration: {duration:.3f}s | "
         f"Client: {request.client.host if request.client else 'unknown'}"
     )
-    
+
     # Add custom headers
     response.headers["X-Process-Time"] = str(duration)
     response.headers["X-API-Version"] = settings.APP_VERSION
-    
-    return response
 
+    return response
 
 # Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add security headers to all responses"""
     response = await call_next(request)
-    
+
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    
-    return response
 
+    return response
 
 # ==================== EXCEPTION HANDLERS ====================
 
@@ -174,7 +174,7 @@ async def add_security_headers(request: Request, call_next):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors"""
     logger.warning(f"Validation error on {request.url.path}: {exc.errors()}")
-    
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
@@ -185,18 +185,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }
     )
 
-
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle all other exceptions"""
     logger.error(f"Unhandled exception on {request.url.path}: {str(exc)}", exc_info=True)
-    
+
     # Don't expose internal errors in production
     if settings.is_production:
         message = "An internal error occurred"
     else:
         message = str(exc)
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -205,7 +204,6 @@ async def general_exception_handler(request: Request, exc: Exception):
             "message": message
         }
     )
-
 
 # ==================== ROOT ROUTES ====================
 
@@ -226,7 +224,6 @@ async def root():
         }
     }
 
-
 @app.get("/health", tags=["Health"])
 @limiter.limit("30/minute")
 async def health_check(request: Request):
@@ -242,7 +239,7 @@ async def health_check(request: Request):
     except Exception as e:
         gemini_status = f"error: {str(e)}"
         logger.error(f"Gemini health check failed: {str(e)}")
-    
+
     # Check Firebase
     firebase_status = "unknown"
     try:
@@ -252,7 +249,7 @@ async def health_check(request: Request):
     except Exception as e:
         firebase_status = f"error: {str(e)}"
         logger.error(f"Firebase health check failed: {str(e)}")
-    
+
     return {
         "success": True,
         "status": "healthy",
@@ -265,7 +262,6 @@ async def health_check(request: Request):
         },
         "uptime": "N/A"  # Can be calculated from startup time
     }
-
 
 @app.get("/info", tags=["Info"])
 async def api_info():
@@ -307,11 +303,10 @@ async def api_info():
         }
     }
 
-
 # ==================== TEST ENDPOINTS (Development Only) ====================
 
 if not settings.is_production:
-    
+
     @app.post("/test/upload", tags=["Testing"])
     async def test_image_upload(request: Request):
         """
@@ -319,18 +314,18 @@ if not settings.is_production:
         Only available in development
         """
         from fastapi import File, UploadFile
-        
+
         @app.post("/test/upload-file")
         async def upload_test_file(file: UploadFile = File(...)):
             from app.utils.image_processor import process_uploaded_image
-            
+
             try:
                 # Read file
                 file_data = await file.read()
-                
+
                 # Process
                 result = process_uploaded_image(file_data, file.filename)
-                
+
                 return {
                     "success": True,
                     "message": "Image processed successfully",
@@ -345,10 +340,9 @@ if not settings.is_production:
                         "error": str(e)
                     }
                 )
-        
+
         return await upload_test_file(request)
-    
-    
+
     @app.get("/test/gemini", tags=["Testing"])
     async def test_gemini():
         """
@@ -357,12 +351,12 @@ if not settings.is_production:
         """
         try:
             gemini_service = get_gemini_service()
-            
+
             # Simple test
             test_response = gemini_service.model.generate_content(
                 "Respond with a JSON object: {\"status\": \"working\", \"message\": \"Gemini AI is operational\"}"
             )
-            
+
             return {
                 "success": True,
                 "gemini_status": "connected",
@@ -377,8 +371,7 @@ if not settings.is_production:
                     "error": str(e)
                 }
             )
-    
-    
+
     @app.get("/test/config", tags=["Testing"])
     async def test_config():
         """
@@ -400,20 +393,17 @@ if not settings.is_production:
             }
         }
 
-
 # ==================== API ROUTES ====================
 
 # Include API routers
-from app.api.routes import waste # <-- Ensure this import is here
+from app.api.routes import waste
 # from app.api.routes import user, auth, leaderboard
 
-# ADDED THE WASTE ROUTER INCLUSION HERE
 app.include_router(
     waste.router,
     prefix=f"{settings.API_V1_PREFIX}/waste",
     tags=["Waste Identification"]
 )
-# END OF WASTE ROUTER INCLUSION
 
 """
 # These are commented out for now - we'll uncomment as we create the route files
@@ -436,24 +426,22 @@ app.include_router(
 )
 """
 
-
 # ==================== STARTUP MESSAGE ====================
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     print("=" * 60)
     print(f"🌍 WasteWise API v{settings.APP_VERSION}")
     print(f"🔧 Environment: {settings.ENVIRONMENT}")
     print(f"📍 Starting server at http://localhost:8000")
     print(f"📚 API Docs at http://localhost:8000/docs")
     print("=" * 60)
-    
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower()
-    )
-    
+)
